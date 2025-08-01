@@ -10,8 +10,8 @@ def load_spider_data(path: str) -> List[dict]:
         return json.load(f)
 
 
-def build_t5_input_output_pairs(examples: List[dict], schemas: dict) -> List[Tuple[str, str]]:
-    """Convert Spider examples into (input, target) pairs for T5."""
+def build_t5_input_output_pairs(examples: List[dict], schemas: dict) -> List[Tuple[str, str, str]]:
+    """Convert Spider examples into (input, target, db_id) triples for T5."""
     pairs = []
     for ex in examples:
         question = ex["question"].strip()
@@ -25,15 +25,15 @@ def build_t5_input_output_pairs(examples: List[dict], schemas: dict) -> List[Tup
         input_text = f"question: {question} schema: {schema}"
         target_text = sql
 
-        pairs.append((input_text, target_text))
+        pairs.append((input_text, target_text, db_id))
     return pairs
 
 
-def save_to_tsv(pairs: List[Tuple[str, str]], path: str):
-    """Save (input, target) pairs to a TSV file."""
+def save_to_tsv(pairs: List[Tuple[str, str, str]], path: str):
+    """Save (input, target, db_id) triples to a TSV file."""
     with open(path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, delimiter="\t")
-        writer.writerow(["input", "target"])
+        writer.writerow(["input", "target", "db_id"])
         writer.writerows(pairs)
 
 

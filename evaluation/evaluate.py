@@ -1,16 +1,21 @@
 import os
 import csv
 import torch
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-from training.spider_dataset import SpiderDataset
 from tqdm import tqdm
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+from training.spider_dataset import SpiderDataset
+from preprocess.schema_utils import load_tables
+from models.picard_interface import PicardDecoder
 
 
-def evaluate():
+def evaluate_with_picard():
     # === Configuration ===
     model_dir = "output/t5-spider-final"
     dev_tsv = "output/processed/dev.tsv"
-    save_output_to = "output/predictions/t5_dev_predictions.tsv"
+    tables_path = "data/spider_data/tables.json"
+    db_path = "data/spider_data/database"
+    save_output_to = "output/predictions/picard_dev_predictions.tsv"
     max_tokens = 100
 
     # === Setup ===
@@ -19,20 +24,37 @@ def evaluate():
     model.eval()
     model.to("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Load schema
+    schemas = load_tables(tables_path)
+
+    # Load dev set
     dataset = SpiderDataset(file_path=dev_tsv, tokenizer=tokenizer)
+
+    # Setup Picard decoder
+    picard = PicardDecoder(
+        tokenizer=tokenizer,
+        schemas=schemas,
+        db_path=db_path,
+        fix_issue_16_primary_keys=True  # Enable known fix if needed
+    )
+
     predictions = []
 
     print(f"Evaluating on {len(dataset)} dev examples...")
 
     for idx in tqdm(range(len(dataset))):
         sample = dataset[idx]
+        db_id = dataset.examples[idx][2]  # Get DB ID from dataset
         input_ids = sample["input_ids"].unsqueeze(0).to(model.device)
         attention_mask = sample["attention_mask"].unsqueeze(0).to(model.device)
 
+        # === Picard decoding ===
         with torch.no_grad():
-            outputs = model.generate(
+            outputs = picard.decode(
+                model=model,
                 input_ids=input_ids,
                 attention_mask=attention_mask,
+                db_id=db_id,
                 max_length=max_tokens,
                 num_beams=4,
                 early_stopping=True
@@ -43,9 +65,10 @@ def evaluate():
 
         predictions.append((predicted_sql, ground_truth_sql))
 
-        # Optional: print first few predictions
+        # Optional: print a few samples
         if idx < 5:
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
+            print("DB ID :", db_id)
             print("INPUT :", tokenizer.decode(sample["input_ids"], skip_special_tokens=True))
             print("PRED  :", predicted_sql)
             print("GT    :", ground_truth_sql)
@@ -61,4 +84,4 @@ def evaluate():
 
 
 if __name__ == "__main__":
-    evaluate()
+    evaluate_with_picard()

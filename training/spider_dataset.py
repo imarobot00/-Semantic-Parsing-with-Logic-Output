@@ -12,7 +12,11 @@ class SpiderDataset(Dataset):
         with open(file_path, 'r', encoding='utf-8') as f:
             reader=csv.DictReader(f, delimiter='\t')
             for row in reader:
-                self.examples.append((row['input'], row['target']))
+                # Handle both old format (input, target) and new format (input, target, db_id)
+                if 'db_id' in row:
+                    self.examples.append((row['input'], row['target'], row['db_id']))
+                else:
+                    self.examples.append((row['input'], row['target'], 'unknown'))
 
         self.max_input_length = max_input_length
         self.max_target_length = max_target_length
@@ -21,7 +25,12 @@ class SpiderDataset(Dataset):
         return len(self.examples) #Telss how manu batcheds to run per epoch
     
     def __getitem__(self, idx):
-        input_text, target_text = self.examples[idx]
+        # Handle both old format (input, target) and new format (input, target, db_id)
+        if len(self.examples[idx]) >= 3:
+            input_text, target_text, db_id = self.examples[idx][:3]
+        else:
+            input_text, target_text = self.examples[idx][:2]
+            db_id = 'unknown'
 
         # Tokenize input and target
         input_enc = self.tokenizer(

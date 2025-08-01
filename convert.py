@@ -2,8 +2,8 @@ import csv
 import json
 
 # Paths
-input_tsv = "output/predictions/t5_dev_predictions.tsv"
-output_json = "output/predictions/t5_dev_predictions_spider.json"
+input_tsv = "output/predictions/picard_dev_predictions.tsv"
+output_json = "output/predictions/t5_dev_predictions_picard_spider.json"
 dev_json_path = "data/spider_data/dev.json"
 
 # Load DB IDs from Spider's dev.json
