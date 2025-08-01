@@ -38,26 +38,23 @@ def save_to_tsv(pairs: List[Tuple[str, str]], path: str):
 
 
 if __name__ == "__main__":
-    # Paths based on your folder structure
+
     schema_path = "data/spider_data/tables.json"
-    train_path = "data/spider_data/train_spider.json"
-    output_path = "output/processed/train.tsv"
+    dev_path = "data/spider_data/dev.json"
+    dev_output = "output/processed/dev.tsv"
 
-    # Ensure directory exists
     import os
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(dev_output), exist_ok=True)
 
-    # Load data
     schemas = load_tables(schema_path)
-    examples = load_spider_data(train_path)
+    examples = load_spider_data(dev_path)
 
-    # Convert
     pairs = build_t5_input_output_pairs(examples, schemas)
 
-    # Save or print
     print("Sample:")
     print("Input: ", pairs[0][0])
     print("Target:", pairs[0][1])
     
-    save_to_tsv(pairs, output_path)
-    print(f"Saved {len(pairs)} examples to {output_path}")
+    save_to_tsv(pairs, dev_output)
+    print(f"Saved {len(pairs)} examples to {dev_output}")
+
